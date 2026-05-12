@@ -65,7 +65,7 @@ const normalizeSnapshot = (raw: DataSnapshot): DataSnapshot => {
     kasCategories?: DataSnapshot['kasCategories']
     ponds?: Array<DataSnapshot['ponds'][number] & { notes?: string }>
     cycles?: Array<DataSnapshot['cycles'][number] & { notes?: string }>
-    dailyLogs?: Array<DataSnapshot['dailyLogs'][number] & { waterCondition?: string; notes?: string }>
+    dailyLogs?: Array<DataSnapshot['dailyLogs'][number] & { notes?: string }>
     stockMovements?: Array<DataSnapshot['stockMovements'][number] & { notes?: string }>
     cashEntries?: Array<DataSnapshot['cashEntries'][number] & { category?: string; notes?: string }>
   }

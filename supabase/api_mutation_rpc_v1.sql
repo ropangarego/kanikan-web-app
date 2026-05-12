@@ -91,6 +91,90 @@ begin
 end;
 $$;
 
+create or replace function public.api_pond_update(
+  p_unit_id uuid,
+  p_name text,
+  p_type text default null,
+  p_capacity integer default null,
+  p_is_active boolean default false,
+  p_description text default ''
+) returns jsonb
+language plpgsql
+volatile
+security definer
+set search_path = public
+as $$
+begin
+  perform public.api_current_profile_id();
+
+  if not public.api_is_owner() then
+    raise exception 'OWNER_REQUIRED' using errcode = '42501';
+  end if;
+
+  if nullif(btrim(coalesce(p_name, '')), '') is null then
+    raise exception 'POND_NAME_REQUIRED' using errcode = '22023';
+  end if;
+
+  if p_capacity is not null and p_capacity < 0 then
+    raise exception 'CAPACITY_MUST_BE_NON_NEGATIVE' using errcode = '22003';
+  end if;
+
+  update public.units
+  set
+    name = btrim(p_name),
+    type = nullif(btrim(coalesce(p_type, '')), ''),
+    capacity = p_capacity,
+    is_active = coalesce(p_is_active, false),
+    description = coalesce(p_description, '')
+  where id = p_unit_id;
+
+  if not found then
+    raise exception 'POND_NOT_FOUND' using errcode = 'P0002';
+  end if;
+
+  return jsonb_build_object(
+    'ok', true,
+    'item', jsonb_build_object('pond_id', p_unit_id),
+    'refresh', jsonb_build_array('ponds_list', 'pond_detail', 'dashboard_summary', 'stock_movements', 'form_options')
+  );
+end;
+$$;
+
+create or replace function public.api_pond_archive(
+  p_unit_id uuid
+) returns jsonb
+language plpgsql
+volatile
+security definer
+set search_path = public
+as $$
+begin
+  perform public.api_current_profile_id();
+
+  if not public.api_is_owner() then
+    raise exception 'OWNER_REQUIRED' using errcode = '42501';
+  end if;
+
+  if exists (select 1 from public.cycles where unit_id = p_unit_id and date_end is null) then
+    raise exception 'POND_HAS_ACTIVE_CYCLE' using errcode = 'P0001';
+  end if;
+
+  update public.units
+  set is_active = false
+  where id = p_unit_id;
+
+  if not found then
+    raise exception 'POND_NOT_FOUND' using errcode = 'P0002';
+  end if;
+
+  return jsonb_build_object(
+    'ok', true,
+    'item', jsonb_build_object('pond_id', p_unit_id),
+    'refresh', jsonb_build_array('ponds_list', 'pond_detail', 'dashboard_summary', 'stock_movements', 'form_options')
+  );
+end;
+$$;
+
 create or replace function public.api_daily_log_create(
   p_date date,
   p_unit_id uuid,
@@ -998,6 +1082,8 @@ $$;
 revoke all on function public.api_current_profile_id() from public;
 revoke all on function public.api_live_fish_for_cycle(uuid) from public;
 revoke all on function public.api_pond_create(text, text, integer, boolean, text) from public;
+revoke all on function public.api_pond_update(uuid, text, text, integer, boolean, text) from public;
+revoke all on function public.api_pond_archive(uuid) from public;
 revoke all on function public.api_daily_log_create(date, uuid, numeric, text, text, text, numeric, integer) from public;
 revoke all on function public.api_daily_log_delete(uuid) from public;
 revoke all on function public.api_daily_log_update(uuid, date, numeric, text, text, text, numeric, integer) from public;
@@ -1013,6 +1099,8 @@ revoke all on function public.api_cycle_transfer(uuid, uuid, date, text) from pu
 
 grant execute on function public.api_daily_log_create(date, uuid, numeric, text, text, text, numeric, integer) to authenticated;
 grant execute on function public.api_pond_create(text, text, integer, boolean, text) to authenticated;
+grant execute on function public.api_pond_update(uuid, text, text, integer, boolean, text) to authenticated;
+grant execute on function public.api_pond_archive(uuid) to authenticated;
 grant execute on function public.api_daily_log_delete(uuid) to authenticated;
 grant execute on function public.api_daily_log_update(uuid, date, numeric, text, text, text, numeric, integer) to authenticated;
 grant execute on function public.api_stock_movement_create(date, uuid, text, integer, numeric, text, uuid) to authenticated;

@@ -57,5 +57,19 @@ export async function callMutationRpc<TResponse>(
     throw new MutationApiError(error.message, error)
   }
 
+  if (
+    data &&
+    typeof data === 'object' &&
+    'ok' in data &&
+    (data as { ok?: unknown }).ok === false
+  ) {
+    throw new MutationApiError(
+      typeof (data as { message?: unknown }).message === 'string'
+        ? (data as { message: string }).message
+        : `${functionName} failed`,
+      data,
+    )
+  }
+
   return data as TResponse
 }

@@ -5,12 +5,14 @@ import type {
   CashSummaryParams,
   CashTransactionsParams,
   DashboardSummaryParams,
+  FeedingPageParams,
   PondDetailParams,
   PondsListParams,
   StockMovementsParams,
 } from '../../types/api-contract'
 import { getCashCategories, getCashSummary, getCashTransactions } from './cash'
 import { getDashboardSummary } from './dashboard'
+import { getFeedingPage } from './feeding'
 import { getFormOptions } from './form-options'
 import { getPondDetail, getPondsList } from './ponds'
 import { getStockMovements } from './stock-movements'
@@ -23,6 +25,7 @@ export const readApiKeys = {
   cashSummary: (params: CashSummaryParams) => ['read-api', 'cash-summary', params] as const,
   cashTransactions: (params: CashTransactionsParams) => ['read-api', 'cash-transactions', params] as const,
   cashCategories: (params: CashCategoriesParams) => ['read-api', 'cash-categories', params] as const,
+  feedingPage: (params: FeedingPageParams) => ['read-api', 'feeding-page', params] as const,
   formOptions: () => ['read-api', 'form-options'] as const,
 }
 
@@ -86,6 +89,14 @@ export function useCashCategoriesQuery(params: CashCategoriesParams = {}) {
   return useQuery({
     queryKey: readApiKeys.cashCategories(params),
     queryFn: () => getCashCategories(params),
+    ...readQueryOptions,
+  })
+}
+
+export function useFeedingPageQuery(params: FeedingPageParams = {}) {
+  return useQuery({
+    queryKey: readApiKeys.feedingPage(params),
+    queryFn: () => getFeedingPage(params),
     ...readQueryOptions,
   })
 }

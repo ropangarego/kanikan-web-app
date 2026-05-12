@@ -67,6 +67,23 @@ export function createPond(input: PondCreateInput) {
   })
 }
 
+export function updatePond(pondId: string, input: PondCreateInput) {
+  return callMutationRpc<MutationResult<{ pond_id: string }>>('api_pond_update', {
+    p_unit_id: pondId,
+    p_name: input.name,
+    p_type: input.type ?? null,
+    p_capacity: input.capacity ?? null,
+    p_is_active: input.isActive ?? false,
+    p_description: input.description ?? '',
+  })
+}
+
+export function archivePond(pondId: string) {
+  return callMutationRpc<MutationResult<{ pond_id: string }>>('api_pond_archive', {
+    p_unit_id: pondId,
+  })
+}
+
 export function createDailyLog(input: DailyLogCreateInput) {
   return callMutationRpc<MutationResult>('api_daily_log_create', {
     p_date: input.date,

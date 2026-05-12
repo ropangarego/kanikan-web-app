@@ -30,7 +30,7 @@ const getYesterday = () => {
 }
 
 const fieldClassName =
-  'w-full min-w-0 rounded-[var(--radius-control)] border border-[var(--color-border)] bg-white px-3.5 py-2.5 text-sm text-[var(--color-text)] outline-none transition focus:border-[var(--color-primary)]'
+  'w-full min-w-0 max-w-full rounded-[var(--radius-control)] border border-[var(--color-border)] bg-white px-3.5 py-2.5 text-base text-[var(--color-text)] outline-none transition focus:border-[var(--color-primary)] md:text-sm'
 
 const secondaryButtonClassName =
   'inline-flex min-h-9 items-center justify-center rounded-[var(--radius-control)] border border-[var(--color-border)] px-3 text-[13px] font-semibold text-[var(--color-text)] transition-all duration-150 hover:bg-[var(--color-surface-muted)] active:scale-95'
@@ -113,8 +113,10 @@ export const QuickActionModal = ({
 
   const [date, setDate] = useState(getToday())
   const [pondId, setPondId] = useState(defaultPondId)
-  const [feedG, setFeedG] = useState('1000')
+  const [feedG, setFeedG] = useState('')
   const [logDescription, setLogDescription] = useState('')
+  const [logAction, setLogAction] = useState('')
+  const [logDetails, setLogDetails] = useState('')
   const [sampleWeightG, setSampleWeightG] = useState('')
   const [sampleCount, setSampleCount] = useState('')
   const [stockType, setStockType] = useState<'in' | 'sold' | 'died' | 'adjustment'>('in')
@@ -131,8 +133,10 @@ export const QuickActionModal = ({
     if (!action) return
     setDate(getToday())
     setPondId(defaultPondId)
-    setFeedG('1000')
+    setFeedG('')
     setLogDescription('')
+    setLogAction('')
+    setLogDetails('')
     setSampleWeightG('')
     setSampleCount('')
     setStockType('in')
@@ -188,7 +192,9 @@ export const QuickActionModal = ({
           date,
           unitId: pondId,
           feedG: Number(feedG || 0),
-          description: logDescription,
+          event: logDescription,
+          action: logAction,
+          description: logDetails || logDescription,
           sampleWeightG: sampleWeightG ? Number(sampleWeightG) : null,
           sampleCount: sampleCount ? Number(sampleCount) : null,
         })
@@ -200,9 +206,9 @@ export const QuickActionModal = ({
           cycleId: selectedCycle.id,
           fishType: selectedCycle.fishType,
           feedG: Number(feedG || 0),
-          event: '',
-          action: '',
-          description: logDescription,
+          event: logDescription,
+          action: logAction,
+          description: logDetails || logDescription,
           sampleWeightG: sampleWeightG ? Number(sampleWeightG) : null,
           sampleCount: sampleCount ? Number(sampleCount) : null,
         })
@@ -393,12 +399,24 @@ export const QuickActionModal = ({
                   <input value={feedG} onChange={(event) => setFeedG(Number(event.target.value) < 0 ? '' : event.target.value)} type="number" min="0" className={fieldClassName} />
               </label>
               <label className="block space-y-2">
-                <span className="text-sm font-semibold text-[var(--color-text)]">{t('pond.sampleWeight')}</span>
-                <input value={sampleWeightG} onChange={(event) => setSampleWeightG(Number(event.target.value) < 0 ? '' : event.target.value)} type="number" min="0" className={fieldClassName} placeholder="120 g" />
+                <span className="text-sm font-semibold text-[var(--color-text)]">{t('pond.sampleWeightOptional')}</span>
+                <input value={sampleWeightG} onChange={(event) => setSampleWeightG(Number(event.target.value) < 0 ? '' : event.target.value)} type="number" min="0" className={fieldClassName} />
+              </label>
+              <label className="block space-y-2">
+                <span className="text-sm font-semibold text-[var(--color-text)]">{t('pond.sampleCountOptional')}</span>
+                <input value={sampleCount} onChange={(event) => setSampleCount(Number(event.target.value) < 0 ? '' : event.target.value)} type="number" min="0" className={fieldClassName} />
               </label>
               <label className="block space-y-2">
                 <span className="text-sm font-semibold text-[var(--color-text)]">{t('common.note')}</span>
                 <textarea value={logDescription} onChange={(inputEvent) => setLogDescription(inputEvent.target.value)} rows={2} className={`${fieldClassName} min-h-[72px] py-3`} />
+              </label>
+              <label className="block space-y-2">
+                <span className="text-sm font-semibold text-[var(--color-text)]">{t('pond.action')}</span>
+                <input value={logAction} onChange={(event) => setLogAction(event.target.value)} className={fieldClassName} />
+              </label>
+              <label className="block space-y-2">
+                <span className="text-sm font-semibold text-[var(--color-text)]">{t('common.description')}</span>
+                <textarea value={logDetails} onChange={(event) => setLogDetails(event.target.value)} rows={2} className={`${fieldClassName} min-h-[72px] py-3`} />
               </label>
             </>
           ) : null}

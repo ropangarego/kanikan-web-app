@@ -519,9 +519,29 @@ These are not part of the requested read contract, but the current UI already ne
 | Delete stock movement | `DELETE /api/v1/stock_movements/:movement_id` |
 | Add cash transaction | `POST /api/v1/cash_transactions` |
 | Delete cash transaction | `DELETE /api/v1/cash_transactions/:transaction_id` |
+| Get feeding page | `RPC api_feeding_page(date, session_label)` |
+| Create feeding session | `RPC api_feeding_session_create(date, session_label, note, entries)` |
 
 Mutation payload cleanup notes:
 
 - Daily log payload should use `description`; do not send `water_condition`.
 - Stock movement payload should use `description`; do not send `notes`.
 - Cash transaction payload should use `category_id` and `description`; do not send raw `category` or `notes`.
+
+## Feeding V1
+
+Feeding is separated from observation logs. Routine feed input should use:
+
+- `feeding_sessions`
+- `feeding_entries`
+- `feeding_templates`
+- `feeding_schedules`
+
+`log_harian` remains available for observations, actions, descriptions, and sampling fields.
+
+Smart input rules:
+
+- Suggestions are per pond and per session.
+- Suggested value uses weighted recent same-session entries.
+- Suggested values are draft inputs, not facts until confirmed by the user.
+- Missing feeding data appears as in-app dashboard/feeding alerts and must be confirmed, edited, skipped, or marked estimated by the user.

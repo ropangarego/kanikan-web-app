@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { useDashboardSummaryQuery, useStockMovementsQuery } from '../../lib/api'
+import { useDashboardSummaryQuery, useFeedingPageQuery, useStockMovementsQuery } from '../../lib/api'
 import { formatNumber, formatRupiah, formatWeightPerFish } from '../../lib/format'
 import { translate, useAppLanguage } from '../../lib/i18n'
 import { getCycleMovementTotals, getLatestSampleWeight } from '../../lib/stock'
@@ -55,6 +55,7 @@ export const DashboardPage = () => {
   const language = useAppLanguage(auth.profile?.language)
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key)
   const dashboardQuery = useDashboardSummaryQuery()
+  const feedingQuery = useFeedingPageQuery({ date: getToday(), session_label: 'morning' })
   const stockOverviewQuery = useStockMovementsQuery({ period: 'all', limit: 1 })
   const apiDashboard = dashboardQuery.data
   const today = getToday()
@@ -164,7 +165,18 @@ export const DashboardPage = () => {
     })),
   ].slice(0, 5)
 
-  const allAttentionItems = apiDashboard
+  const feedingAttentionItems =
+    feedingQuery.data?.missing_items.slice(0, 4).map((item) => ({
+      id: item.id,
+      title: t('dashboard.missingFeedingTitle').replace('{session}', item.session_label),
+      description: t('dashboard.missingFeedingDesc')
+        .replace('{count}', '1')
+        .replace('{date}', item.date),
+      tone: 'warning' as const,
+      href: '/feeding',
+    })) ?? []
+
+  const dashboardAttentionItems = apiDashboard
     ? apiDashboard.attention_items.map((item) => ({
         id: item.id,
         title: item.title,
@@ -173,6 +185,7 @@ export const DashboardPage = () => {
         href: item.pond_id ? `/ponds?pond=${item.pond_id}` : item.cycle_id ? `/cycles/${item.cycle_id}` : '/',
       }))
     : localAttentionItems
+  const allAttentionItems = [...feedingAttentionItems, ...dashboardAttentionItems]
   const attentionItems = allAttentionItems.slice(0, 3)
 
   const localSalesThisMonth = appData.snapshot.sales

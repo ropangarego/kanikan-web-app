@@ -4,11 +4,13 @@ import { useSearchParams } from 'react-router-dom'
 import { Line, LineChart, ResponsiveContainer } from 'recharts'
 import {
   closeCycle,
+  archivePond,
   createPond,
   deleteDailyLog as deleteDailyLogMutation,
   deleteStockMovement as deleteStockMovementMutation,
   startCycle,
   transferCycle,
+  updatePond,
   updateDailyLog,
   useFormOptionsQuery,
   usePondDetailQuery,
@@ -58,7 +60,7 @@ const primaryButtonClassName =
   'inline-flex min-h-9 items-center justify-center rounded-[var(--radius-control)] bg-[var(--color-primary)] px-3 text-[13px] font-semibold text-white transition-all duration-150 hover:bg-[var(--color-primary-strong)] active:scale-95'
 
 const fieldClassName =
-  'w-full min-w-0 rounded-[var(--radius-control)] border border-[var(--color-border)] bg-white px-3 py-2.5 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-primary)]'
+  'w-full min-w-0 max-w-full rounded-[var(--radius-control)] border border-[var(--color-border)] bg-white px-3 py-2.5 text-base text-[var(--color-text)] outline-none focus:border-[var(--color-primary)] md:text-sm'
 
 const tabClassName = (active: boolean) =>
   `-mb-px border border-b-0 px-4 py-2.5 font-medium transition-all duration-150 ${
@@ -76,24 +78,21 @@ const getPondSortRank = (pond: { status: string; current_cycle?: unknown | null 
   return 2
 }
 
-const movementTypeLabel = (type: string) => {
+const movementTypeLabel = (type: string, t: (key: Parameters<typeof translate>[1]) => string) => {
   switch (type) {
     case 'stock_in':
-      return 'Stock in'
+      return t('stock.typeIn')
     case 'sold':
-      return 'Sold'
+      return t('stock.typeSold')
     case 'died':
-      return 'Died'
+      return t('stock.typeDied')
     case 'transfer_in':
-      return 'Transfer in'
     case 'transfer_out':
-      return 'Transfer out'
+      return t('stock.typeTransfer')
     case 'adjustment_in':
-      return 'Adjustment in'
     case 'adjustment_out':
-      return 'Adjustment out'
     case 'personal_use':
-      return 'Personal use'
+      return t('stock.typeAdjustment')
     default:
       return type
   }
@@ -193,12 +192,21 @@ export const PondsPage = () => {
   const [selectorQuery, setSelectorQuery] = useState('')
   const [cycleDialog, setCycleDialog] = useState<CycleDialog>(null)
   const [showAddPondDialog, setShowAddPondDialog] = useState(false)
+  const [showEditPondDialog, setShowEditPondDialog] = useState(false)
+  const [showArchivePondConfirm, setShowArchivePondConfirm] = useState(false)
   const [showCloseConfirm, setShowCloseConfirm] = useState(false)
   const [logEditId, setLogEditId] = useState<string | null>(null)
   const [deleteLogId, setDeleteLogId] = useState<string | null>(null)
   const [deleteMovementId, setDeleteMovementId] = useState<string | null>(null)
   const [isMutating, setIsMutating] = useState(false)
   const [addPondDraft, setAddPondDraft] = useState<AddPondDraft>({
+    name: '',
+    type: '',
+    capacity: '',
+    status: 'inactive',
+    description: '',
+  })
+  const [editPondDraft, setEditPondDraft] = useState<AddPondDraft>({
     name: '',
     type: '',
     capacity: '',
@@ -236,6 +244,8 @@ export const PondsPage = () => {
     return {
       pond_id: pond.id,
       pond_name: pond.name,
+      pond_type: pond.type,
+      capacity_fish: pond.capacity,
       status: pond.isActive ? ('active' as const) : ('inactive' as const),
       description: pond.description,
       current_cycle: cycle
@@ -365,12 +375,16 @@ export const PondsPage = () => {
   const movements = !hasCurrentCycle
     ? []
     : apiDetail
-      ? apiDetail.stock_movements.map((movement) => ({ ...movement, can_delete: isOwner || movement.can_delete }))
+      ? apiDetail.stock_movements.map((movement) => ({
+        ...movement,
+        movement_label: movementTypeLabel(movement.movement_type, t),
+        can_delete: isOwner || movement.can_delete,
+      }))
       : localMovements.map((movement) => ({
         movement_id: movement.id,
         date: movement.date,
         movement_type: movement.movementType,
-        movement_label: movementTypeLabel(movement.movementType),
+        movement_label: movementTypeLabel(movement.movementType, t),
         count: movement.count,
         weight_kg: movement.weightKg,
         description: movement.description,
@@ -508,6 +522,76 @@ export const PondsPage = () => {
       showToast(t('pond.added'), 'success', t('pond.addedDesc'))
     } catch {
       showToast(t('pond.couldNotAdd'), 'error', t('pond.ownerOnlyAdd'))
+    } finally {
+      setIsMutating(false)
+    }
+  }
+
+  const openEditPond = () => {
+    if (!selectedPond) return
+    setAddPondError(null)
+    setEditPondDraft({
+      name: apiDetail?.pond.pond_name ?? selectedPond.pond_name,
+      type: apiDetail?.pond.pond_type ?? selectedPond.pond_type ?? '',
+      capacity:
+        apiDetail?.pond.capacity_fish !== null && apiDetail?.pond.capacity_fish !== undefined
+          ? String(apiDetail.pond.capacity_fish)
+          : selectedPond.capacity_fish !== null && selectedPond.capacity_fish !== undefined
+            ? String(selectedPond.capacity_fish)
+            : '',
+      status: (apiDetail?.pond.status ?? selectedPond.status) === 'active' ? 'active' : 'inactive',
+      description: apiDetail?.pond.description ?? selectedPond.description ?? '',
+    })
+    setShowEditPondDialog(true)
+  }
+
+  const submitEditPond = async () => {
+    if (!selectedPond?.pond_id) return
+    const name = editPondDraft.name.trim()
+    const capacity = editPondDraft.capacity.trim() ? Number(editPondDraft.capacity) : null
+
+    if (!name) {
+      setAddPondError(t('pond.nameRequired'))
+      showToast(t('common.validationFailed'), 'error', t('pond.nameRequired'))
+      return
+    }
+
+    if (capacity !== null && (!Number.isFinite(capacity) || capacity < 0)) {
+      setAddPondError(t('pond.capacityPositive'))
+      showToast(t('common.validationFailed'), 'error', t('pond.capacityPositive'))
+      return
+    }
+
+    setIsMutating(true)
+    setAddPondError(null)
+    try {
+      await updatePond(selectedPond.pond_id, {
+        name,
+        type: editPondDraft.type.trim() || null,
+        capacity,
+        isActive: editPondDraft.status === 'active',
+        description: editPondDraft.description.trim() || null,
+      })
+      await refreshPondQueries()
+      setShowEditPondDialog(false)
+      showToast(t('pond.updated'), 'success', t('pond.updatedDesc'))
+    } catch {
+      showToast(t('pond.couldNotAdd'), 'error', t('pond.ownerOnlyAdd'))
+    } finally {
+      setIsMutating(false)
+    }
+  }
+
+  const confirmArchivePond = async () => {
+    if (!selectedPond?.pond_id) return
+    setIsMutating(true)
+    try {
+      await archivePond(selectedPond.pond_id)
+      await refreshPondQueries()
+      setShowArchivePondConfirm(false)
+      showToast(t('pond.archived'), 'success', t('pond.archivedDesc'))
+    } catch {
+      showToast(t('pond.archive'), 'error', hasCurrentCycle ? t('pond.archiveBlocked') : t('pond.checkAccessConnection'))
     } finally {
       setIsMutating(false)
     }
@@ -789,12 +873,66 @@ export const PondsPage = () => {
     </div>
   ) : null
 
+  const editPondModal = showEditPondDialog ? (
+    <div className="overlay-fade fixed inset-0 z-50 flex items-end justify-center bg-slate-950/40 p-0 md:items-center md:p-4">
+      <div className="sheet-up max-h-[88vh] w-full overflow-y-auto rounded-t-[16px] border border-[var(--color-border)] bg-white p-5 shadow-[var(--shadow-strong)] md:modal-pop md:max-w-md md:rounded-[var(--radius-shell)]">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-semibold text-[var(--color-text)]">{t('pond.edit')}</h2>
+            <p className="mt-1 text-sm text-[var(--color-text-muted)]">{pondName}</p>
+          </div>
+          <button type="button" onClick={() => setShowEditPondDialog(false)} className={actionButtonClassName}>
+            x
+          </button>
+        </div>
+
+        <div className="mt-5 space-y-4">
+          {addPondError ? <p className="rounded-[var(--radius-control)] bg-rose-50 px-3 py-2 text-sm text-rose-700">{addPondError}</p> : null}
+          <label className="block space-y-2">
+            <span className="text-sm font-semibold text-[var(--color-text)]">{t('pond.name')}</span>
+            <input value={editPondDraft.name} onChange={(event) => setEditPondDraft((draft) => ({ ...draft, name: event.target.value }))} className={fieldClassName} />
+          </label>
+          <div className="grid gap-3 md:grid-cols-2">
+            <label className="block space-y-2">
+              <span className="text-sm font-semibold text-[var(--color-text)]">{t('common.type')}</span>
+              <input value={editPondDraft.type} onChange={(event) => setEditPondDraft((draft) => ({ ...draft, type: event.target.value }))} className={fieldClassName} />
+            </label>
+            <label className="block space-y-2">
+              <span className="text-sm font-semibold text-[var(--color-text)]">{t('pond.capacity')}</span>
+              <input type="number" min="0" value={editPondDraft.capacity} onChange={(event) => setEditPondDraft((draft) => ({ ...draft, capacity: event.target.value }))} className={fieldClassName} />
+            </label>
+          </div>
+          <label className="block space-y-2">
+            <span className="text-sm font-semibold text-[var(--color-text)]">{t('pond.status')}</span>
+            <select value={editPondDraft.status} onChange={(event) => setEditPondDraft((draft) => ({ ...draft, status: event.target.value as AddPondDraft['status'] }))} className={fieldClassName}>
+              <option value="inactive">{t('common.status.inactive')} / {t('common.empty')}</option>
+              <option value="active">{t('common.status.active')}</option>
+            </select>
+          </label>
+          <label className="block space-y-2">
+            <span className="text-sm font-semibold text-[var(--color-text)]">{t('pond.description')}</span>
+            <textarea rows={3} value={editPondDraft.description} onChange={(event) => setEditPondDraft((draft) => ({ ...draft, description: event.target.value }))} className={`${fieldClassName} min-h-[88px]`} />
+          </label>
+          <div className="flex justify-end gap-3 border-t border-[var(--color-border)] pt-4">
+            <button type="button" onClick={() => setShowEditPondDialog(false)} className={actionButtonClassName}>
+              {t('common.cancel')}
+            </button>
+            <button type="button" disabled={isMutating} onClick={() => void submitEditPond()} className={`${primaryButtonClassName} disabled:cursor-not-allowed disabled:opacity-60`}>
+              {isMutating ? t('settings.saving') : t('common.update')}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  ) : null
+
   if (!selectedPond && !pondsListQuery.isLoading) {
     return (
       <div className="space-y-5">
         {pageHeader}
         <EmptyState title={t('pond.noData')} description={canCreatePond ? t('pond.noDataOwner') : t('pond.noDataMember')} />
         {addPondModal}
+        {editPondModal}
       </div>
     )
   }
@@ -876,6 +1014,13 @@ export const PondsPage = () => {
                                 <button type="button" onClick={() => selectMoreAction('close')} className="w-full rounded-[var(--radius-control)] px-3 py-2 text-left text-sm font-medium text-rose-700 hover:bg-[var(--color-danger-soft)]">
                                   {t('pond.closeCycle')}
                                 </button>
+                                {isOwner ? (
+                                  <>
+                                    <button type="button" onClick={() => { setShowMoreActions(false); openEditPond() }} className="w-full rounded-[var(--radius-control)] px-3 py-2 text-left text-sm font-medium text-[var(--color-text)] hover:bg-[var(--color-surface-muted)]">
+                                      {t('pond.edit')}
+                                    </button>
+                                  </>
+                                ) : null}
                               </div>
                             ) : null}
                           </div>
@@ -883,11 +1028,18 @@ export const PondsPage = () => {
                       ) : (
                         <>
                           <button type="button" onClick={() => { setFormError(null); setCycleDialog('start') }} className={`${primaryButtonClassName} w-full md:w-auto`}>
-                            {t('pond.open')}
-                          </button>
-                          <button type="button" onClick={() => { setFormError(null); setCycleDialog('start') }} className={`${actionButtonClassName} w-full md:w-auto`}>
                             {t('pond.startNewCycle')}
                           </button>
+                          {isOwner ? (
+                            <div className="grid grid-cols-2 gap-2 md:flex">
+                              <button type="button" onClick={openEditPond} className={`${actionButtonClassName} w-full md:w-auto`}>
+                                {t('pond.edit')}
+                              </button>
+                              <button type="button" onClick={() => setShowArchivePondConfirm(true)} className="inline-flex min-h-9 items-center justify-center rounded-[var(--radius-control)] border border-rose-200 bg-[var(--color-danger-soft)] px-3 text-[13px] font-semibold text-rose-700 transition-all duration-150 hover:bg-rose-100 active:scale-95">
+                                {t('pond.archive')}
+                              </button>
+                            </div>
+                          ) : null}
                         </>
                       )}
                     </div>
@@ -1173,6 +1325,17 @@ export const PondsPage = () => {
       ) : null}
 
       {addPondModal}
+      {editPondModal}
+
+      <DangerConfirmModal
+        open={showArchivePondConfirm}
+        title={t('pond.archiveTitle')}
+        message={t('pond.archiveMessage')}
+        detail={pondName ? `${pondName}. ${t('common.cannotBeUndone')}` : undefined}
+        confirmLabel={t('pond.archive')}
+        onCancel={() => setShowArchivePondConfirm(false)}
+        onConfirm={() => void confirmArchivePond()}
+      />
 
       {showMoreActions ? (
         <button
@@ -1222,16 +1385,16 @@ export const PondsPage = () => {
                   </label>
                   <div className="grid gap-3 md:grid-cols-2">
                     <label className="block space-y-2">
-                      <span className="text-sm font-semibold text-[var(--color-text)]">{t('pond.seedWeight')}</span>
+                      <span className="text-sm font-semibold text-[var(--color-text)]">{t('pond.seedWeightOptional')}</span>
                       <input type="number" min="0" value={startDraft.avgSeedWeightG} onChange={(event) => setStartDraft((draft) => ({ ...draft, avgSeedWeightG: event.target.value }))} className={fieldClassName} />
                     </label>
                     <label className="block space-y-2">
-                      <span className="text-sm font-semibold text-[var(--color-text)]">{t('pond.targetWeight')}</span>
+                      <span className="text-sm font-semibold text-[var(--color-text)]">{t('pond.targetWeightOptional')}</span>
                       <input type="number" min="0" value={startDraft.targetWeightG} onChange={(event) => setStartDraft((draft) => ({ ...draft, targetWeightG: event.target.value }))} className={fieldClassName} />
                     </label>
                   </div>
                   <label className="block space-y-2">
-                    <span className="text-sm font-semibold text-[var(--color-text)]">{t('pond.capital')}</span>
+                    <span className="text-sm font-semibold text-[var(--color-text)]">{t('pond.capitalOptional')}</span>
                     <input type="number" min="0" value={startDraft.capitalRp} onChange={(event) => setStartDraft((draft) => ({ ...draft, capitalRp: event.target.value }))} className={fieldClassName} />
                   </label>
                   <label className="block space-y-2">

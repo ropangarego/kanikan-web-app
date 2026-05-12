@@ -71,6 +71,82 @@ export type DashboardAttentionItem = {
   action_label?: string | null
 }
 
+export type FeedingSessionLabel = 'morning' | 'noon' | 'evening' | 'custom'
+
+export type FeedingInputStatus =
+  | 'manual'
+  | 'suggested_confirmed'
+  | 'estimated_unconfirmed'
+  | 'skipped'
+
+export type FeedingPageParams = {
+  date?: ApiDate
+  session_label?: FeedingSessionLabel
+}
+
+export type FeedingPageResponse = {
+  date: ApiDate
+  session_label: FeedingSessionLabel
+  schedules: FeedingScheduleOption[]
+  templates: FeedingTemplateOption[]
+  active_ponds: FeedingPondSuggestion[]
+  missing_items: FeedingMissingItem[]
+  recent_sessions: FeedingRecentSession[]
+}
+
+export type FeedingScheduleOption = {
+  schedule_id: ApiId
+  session_label: FeedingSessionLabel
+  expected_time?: string | null
+  cutoff_time?: string | null
+  is_active: boolean
+}
+
+export type FeedingTemplateOption = {
+  template_id: ApiId
+  name: string
+  session_label?: FeedingSessionLabel | null
+  default_note?: string | null
+  is_active: boolean
+}
+
+export type FeedingPondSuggestion = {
+  pond_id: ApiId
+  pond_name: string
+  cycle_id: ApiId
+  fish_species?: string | null
+  last_feed_g?: number | null
+  suggested_feed_g?: number | null
+  min_feed_g?: number | null
+  max_feed_g?: number | null
+  sample_size: number
+  already_recorded: boolean
+}
+
+export type FeedingMissingItem = {
+  id: string
+  date: ApiDate
+  session_label: FeedingSessionLabel
+  pond_id: ApiId
+  pond_name: string
+  cycle_id: ApiId
+  fish_species?: string | null
+  suggested_feed_g?: number | null
+  min_feed_g?: number | null
+  max_feed_g?: number | null
+}
+
+export type FeedingRecentSession = {
+  session_id: ApiId
+  date: ApiDate
+  session_label: FeedingSessionLabel
+  note?: string | null
+  total_feed_g: number
+  entry_count: number
+  skipped_count: number
+  created_at?: string | null
+}
+
 export type DashboardGrowth = {
   scope: 'overall_running_ponds' | string
   title: string

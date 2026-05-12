@@ -21,7 +21,7 @@ type UiMovementType = 'in' | 'sold' | 'died' | 'transfer' | 'adjustment'
 type PeriodFilter = 'today' | '7d' | '30d' | 'month' | '3m' | 'all'
 
 const fieldClassName =
-  'w-full min-w-0 rounded-[var(--radius-control)] border border-[var(--color-border)] bg-white px-3.5 py-2.5 text-sm text-[var(--color-text)] outline-none transition focus:border-[var(--color-primary)]'
+  'w-full min-w-0 max-w-full rounded-[var(--radius-control)] border border-[var(--color-border)] bg-white px-3.5 py-2.5 text-base text-[var(--color-text)] outline-none transition focus:border-[var(--color-primary)] md:text-sm'
 
 const chipClassName = (active: boolean) =>
   `inline-flex min-h-9 cursor-pointer items-center justify-center rounded-[var(--radius-control)] border px-2.5 text-[13px] font-semibold transition ${

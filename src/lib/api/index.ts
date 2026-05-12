@@ -1,6 +1,7 @@
 export * from './cash'
 export * from './client'
 export * from './dashboard'
+export * from './feeding'
 export * from './form-options'
 export * from './mutations'
 export * from './ponds'

@@ -92,14 +92,21 @@ const PlusIcon = ({ className = 'h-5 w-5' }: IconProps) => (
   </svg>
 )
 
+const FeedingIcon = ({ className = 'h-5 w-5' }: IconProps) => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={className}>
+    <path d="M4 7h16M6 7l1 11h10l1-11" />
+    <path d="M9 11h6M10 15h4" />
+  </svg>
+)
+
 const navIcons: Record<string, (props: IconProps) => ReactNode> = {
   '/': DashboardIcon,
   '/attention': AttentionIcon,
+  '/feeding': FeedingIcon,
   '/ponds': PondIcon,
   '/stock-movements': StockIcon,
   '/cash': CashIcon,
   '/settings': SettingsIcon,
-  '/ui-preview': ComponentsIcon,
 }
 
 const desktopNavClassName = ({ isActive }: { isActive: boolean;}) =>
@@ -166,10 +173,10 @@ export const AppShell = () => {
 
   const mobileNav = [
     { to: '/', label: t('nav.dashboard'), icon: DashboardIcon },
+    { to: '/feeding', label: t('nav.feeding'), icon: FeedingIcon },
     { to: '/ponds', label: t('nav.ponds'), icon: PondIcon },
     { to: '/stock-movements', label: t('nav.stock'), icon: StockIcon },
     { to: '/cash', label: t('nav.cash'), icon: CashIcon },
-    { to: '/settings', label: t('nav.settings'), icon: SettingsIcon },
   ]
 
   const isNavActive = (to: string) => {
@@ -186,11 +193,11 @@ export const AppShell = () => {
 
   const getNavLabel = (to: string, fallback: string) => {
     if (to === '/') return t('nav.dashboard')
+    if (to === '/feeding') return t('nav.feeding')
     if (to === '/ponds') return t('nav.ponds')
     if (to === '/stock-movements') return t('nav.stock')
     if (to === '/cash') return t('nav.cash')
     if (to === '/settings') return t('nav.settings')
-    if (to === '/ui-preview') return t('nav.uiPreview')
     return fallback
   }
 

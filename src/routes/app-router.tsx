@@ -7,6 +7,7 @@ import { translate, useAppLanguage } from '../lib/i18n'
 
 const DashboardPage = lazy(async () => import('../features/dashboard/dashboard-page').then((module) => ({ default: module.DashboardPage })))
 const AttentionPage = lazy(async () => import('../features/attention/attention-page').then((module) => ({ default: module.AttentionPage })))
+const FeedingPage = lazy(async () => import('../features/feeding/feeding-page').then((module) => ({ default: module.FeedingPage })))
 const PondsPage = lazy(async () => import('../features/ponds/ponds-page').then((module) => ({ default: module.PondsPage })))
 const PondDetailPage = lazy(async () => import('../features/ponds/pond-detail-page').then((module) => ({ default: module.PondDetailPage })))
 const CyclesPage = lazy(async () => import('../features/cycles/cycles-page').then((module) => ({ default: module.CyclesPage })))
@@ -17,7 +18,6 @@ const SalesPage = lazy(async () => import('../features/sales/sales-page').then((
 const CashPage = lazy(async () => import('../features/cash/cash-page').then((module) => ({ default: module.CashPage })))
 const SettingsPage = lazy(async () => import('../features/settings/settings-page').then((module) => ({ default: module.SettingsPage })))
 const SimplePlaceholderPage = lazy(async () => import('../features/placeholders/simple-placeholder-page').then((module) => ({ default: module.SimplePlaceholderPage })))
-const UiPreviewPage = lazy(async () => import('../features/design/ui-preview-page').then((module) => ({ default: module.UiPreviewPage })))
 
 const PageLoader = () => (
   <div className="flex min-h-[50vh] items-center justify-center">
@@ -35,7 +35,9 @@ const ProtectedLayout = () => {
       <Routes>
         <Route element={<AppShell />}>
           <Route index element={<DashboardPage />} />
+          <Route path="dashboard" element={<DashboardPage />} />
           <Route path="attention" element={<AttentionPage />} />
+          <Route path="feeding" element={<FeedingPage />} />
           <Route path="ponds" element={<PondsPage />} />
           <Route path="ponds/:pondId" element={<PondDetailPage />} />
           <Route path="cycles" element={<CyclesPage />} />
@@ -45,10 +47,10 @@ const ProtectedLayout = () => {
           <Route path="sales" element={<SalesPage />} />
           <Route path="cash" element={<CashPage />} />
           <Route path="settings" element={<SettingsPage />} />
-          <Route path="ui-preview" element={<UiPreviewPage />} />
           <Route path="predictions" element={<SimplePlaceholderPage title={t('placeholder.predictionsTitle')} description={t('placeholder.predictionsDesc')} subtitle={t('placeholder.subtitle')} stablePath={t('placeholder.stablePath')} />} />
           <Route path="reports" element={<SimplePlaceholderPage title={t('placeholder.reportsTitle')} description={t('placeholder.reportsDesc')} subtitle={t('placeholder.subtitle')} stablePath={t('placeholder.stablePath')} />} />
           <Route path="master-data" element={<SimplePlaceholderPage title={t('placeholder.masterDataTitle')} description={t('placeholder.masterDataDesc')} subtitle={t('placeholder.subtitle')} stablePath={t('placeholder.stablePath')} />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
     </Suspense>

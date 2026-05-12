@@ -217,9 +217,9 @@ const { error } = await supabase!.from('log_harian').insert({
   cycle_id: input.cycleId,
   fish_type_id: input.fishTypeId,
   feed_g: input.feedG,
-  water_condition: input.waterCondition,
   event: input.event,
   action: input.action,
+  description: input.description,
   sample_weight_g: input.sampleWeightG,
   sample_count: input.sampleCount,
 })

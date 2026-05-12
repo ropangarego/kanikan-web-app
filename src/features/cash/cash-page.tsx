@@ -91,7 +91,7 @@ const formatSignedRupiah = (value: number) => {
 }
 
 const fieldClassName =
-  'w-full min-w-0 rounded-[var(--radius-control)] border border-[var(--color-border)] bg-white px-3.5 py-2.5 text-sm text-[var(--color-text)] outline-none transition focus:border-[var(--color-primary)]'
+  'w-full min-w-0 max-w-full rounded-[var(--radius-control)] border border-[var(--color-border)] bg-white px-3.5 py-2.5 text-base text-[var(--color-text)] outline-none transition focus:border-[var(--color-primary)] md:text-sm'
 
 const quickDateLabelClassName = 'text-xs font-medium text-[var(--color-text-muted)]'
 const quickDateClassName =
@@ -350,7 +350,7 @@ export const CashPage = () => {
   const deleteEntry = deleteEntryId ? displayEntries.find((entry) => entry.id === deleteEntryId) : undefined
   const sortedDisplayEntries = displayEntries
     .slice()
-    .sort((left, right) => right.date.localeCompare(left.date) || right.id.localeCompare(left.id))
+    .sort((left, right) => left.date.localeCompare(right.date) || left.id.localeCompare(right.id))
   const mobileEntries = sortedDisplayEntries.slice(0, mobileVisibleCount)
   const showActionColumn = displayEntries.some((entry) => entry.canDelete)
   const getCategoryName = (categoryId: string) =>
@@ -578,6 +578,7 @@ export const CashPage = () => {
           <div className="space-y-4 border-t border-[var(--color-border)] pt-5 md:border-l md:border-t-0 md:pl-6">
             <div>
               <h2 className="text-base font-semibold text-[var(--color-text)]">{t('cash.balanceOverTime')}</h2>
+              <p className="mt-1 text-xs text-[var(--color-text-muted)]">{t('cash.balanceOverTimeHint')}</p>
             </div>
             <div className="h-36 sm:h-40">
               <ResponsiveContainer width="100%" height="100%">
